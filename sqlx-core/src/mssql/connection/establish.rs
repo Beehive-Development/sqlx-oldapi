@@ -61,7 +61,7 @@ impl MssqlConnection {
 
         let login_packet = Login7 {
             // FIXME: use a version constant
-            version: 0x74000004, // SQL Server 2012 - SQL Server 2019
+            version: 0x72000002, // SQL Server 2012 - SQL Server 2019
             client_program_version: options.client_program_version,
             client_pid: options.client_pid,
             packet_size: options.requested_packet_size, // max allowed size of TDS packet
