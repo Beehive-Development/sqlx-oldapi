@@ -55,3 +55,74 @@ impl From<MssqlRow> for crate::any::AnyRow {
         }
     }
 }
+
+/// Utility builder for a [`MssqlRow`].
+#[derive(Debug, Default)]
+pub struct MssqlRowBuilder {
+    columns: Vec<MssqlColumn>,
+    values: Vec<Option<bytes::Bytes>>,
+    column_types: Vec<crate::mssql::MssqlTypeInfo>,
+}
+
+impl MssqlRowBuilder {
+    /// Add a [`MssqlColumn`] encoded with the given `value` to the builder.
+    #[must_use]
+    pub fn column<'q, T>(self, name: &str, value: T) -> Self
+    where
+        T: crate::encode::Encode<'q, Mssql> + crate::types::Type<Mssql>,
+    {
+        let type_info = value.produces().unwrap_or_else(T::type_info);
+        let mut buf = Vec::new();
+
+        let encoded = match value.encode(&mut buf) {
+            crate::encode::IsNull::Yes => None,
+            crate::encode::IsNull::No => Some(bytes::Bytes::from(buf)),
+        };
+
+        self.push(name, type_info, encoded)
+    }
+
+    /// Add a [`MssqlColumn`] encoded with a `null` value to the builder.
+    #[must_use]
+    pub fn null_column<T: crate::types::Type<Mssql>>(self, name: &str) -> Self {
+        self.push(name, T::type_info(), None)
+    }
+
+    // Pushes the _raw_ values of a [`MssqlColumn`] to the builder.
+    fn push(
+        mut self,
+        name: &str,
+        type_info: crate::mssql::MssqlTypeInfo,
+        value: Option<bytes::Bytes>,
+    ) -> Self {
+        self.columns.push(MssqlColumn {
+            ordinal: self.columns.len(),
+            name: UStr::new(name),
+            type_info: type_info.clone(),
+            flags: crate::mssql::protocol::col_meta_data::Flags::NULLABLE,
+        });
+
+        self.column_types.push(type_info);
+        self.values.push(value);
+        self
+    }
+
+    /// Consumes the builder and returns the finished [`MssqlRow`].
+    #[must_use]
+    pub fn build(self) -> MssqlRow {
+        let column_names = self
+            .columns
+            .iter()
+            .map(|column| (column.name.clone(), column.ordinal))
+            .collect::<HashMap<_, _>>();
+
+        MssqlRow {
+            row: ProtocolRow {
+                column_types: self.column_types,
+                values: self.values,
+            },
+            columns: Arc::new(self.columns),
+            column_names: Arc::new(column_names),
+        }
+    }
+}

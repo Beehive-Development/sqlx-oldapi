@@ -26,7 +26,7 @@ pub use error::MssqlDatabaseError;
 pub use options::MssqlConnectOptions;
 pub use protocol::pre_login::Encrypt;
 pub use query_result::MssqlQueryResult;
-pub use row::MssqlRow;
+pub use row::{MssqlRow, MssqlRowBuilder};
 pub use statement::MssqlStatement;
 pub use transaction::MssqlTransactionManager;
 pub use type_info::MssqlTypeInfo;
