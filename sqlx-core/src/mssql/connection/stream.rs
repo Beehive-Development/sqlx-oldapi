@@ -194,6 +194,10 @@ impl MssqlStream {
                                 self.max_packet_size = size.clamp(512, 32767).try_into().unwrap();
                             }
 
+                            EnvChange::RoutingInformation(alternate_server, protocol_property) => {
+                                return Err(Error::Redirected(alternate_server, protocol_property));
+                            }
+
                             _ => {}
                         }
 

@@ -180,6 +180,9 @@ pub enum Error {
 
     #[error("integer overflow while converting to target type")]
     IntegerOverflow(#[source] std::num::TryFromIntError),
+
+    #[error("redirected by sql server instance")]
+    Redirected(String, u16),
 }
 
 impl StdError for Box<dyn DatabaseError> {}
